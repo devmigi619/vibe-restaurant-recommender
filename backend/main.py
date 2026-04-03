@@ -11,6 +11,9 @@ load_dotenv()
 
 app = FastAPI(title="제주 감성 맛집 추천 API")
 
+# 환경 설정
+ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
+
 cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
 
 app.add_middleware(
@@ -26,6 +29,7 @@ app.add_middleware(
 def health_check():
     return {
         "status": "ok",
+        "environment": ENVIRONMENT,
         "restaurant_count": get_restaurant_count()
     }
 
@@ -73,3 +77,9 @@ async def recommend(file: UploadFile = File(...)):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.getenv("PORT", "8001"))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)

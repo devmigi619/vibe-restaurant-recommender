@@ -10,13 +10,17 @@ from tools import analyze_image_vibe, search_matching_restaurants, set_current_i
 
 load_dotenv()
 
-llm = ChatOpenAI(
+# 환경 설정 (local, local-docker, server)
+ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
+
+# thinking 비활성화 시 temperature=0.6 고정 (Kimi K2.5 공식 스펙)
+_llm = ChatOpenAI(
     model="kimi-k2.5",
     openai_api_key=os.getenv("MOONSHOT_API_KEY"),
     openai_api_base="https://api.moonshot.ai/v1",
     temperature=0.6,
-    model_kwargs={"thinking": {"type": "disabled"}},
 )
+llm = _llm.bind(extra_body={"thinking": {"type": "disabled"}})
 
 tools = [analyze_image_vibe, search_matching_restaurants]
 
@@ -27,7 +31,7 @@ agent_executor = AgentExecutor(
     agent=agent,
     tools=tools,
     verbose=True,
-    max_iterations=5,
+    max_iterations=10,
     handle_parsing_errors=True,
     return_intermediate_steps=True,
 )
@@ -41,6 +45,7 @@ def run_vibe_recommendation(image_base64: str) -> dict:
         public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
         secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
         host=os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com"),
+        tags=[ENVIRONMENT],  # 환경 태그 추가
     )
 
     result = agent_executor.invoke(

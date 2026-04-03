@@ -49,6 +49,7 @@ def analyze_image_vibe(dummy: str = "") -> str:
                 ],
             }
         ],
+        temperature=0.6,
         extra_body={"thinking": {"type": "disabled"}},
     )
     return response.choices[0].message.content.strip()

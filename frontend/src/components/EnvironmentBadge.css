@@ -1,0 +1,62 @@
+.environment-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-size: 13px;
+  font-weight: 500;
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 1000;
+}
+
+.env-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.env-label {
+  color: #666;
+}
+
+.env-value {
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: transform 0.2s;
+}
+
+.env-value:hover {
+  transform: scale(1.05);
+}
+
+.env-divider {
+  color: #ccc;
+  font-weight: 300;
+}
+
+/* 모바일 대응 */
+@media (max-width: 480px) {
+  .environment-badge {
+    top: 8px;
+    right: 8px;
+    padding: 6px 12px;
+    gap: 8px;
+    font-size: 11px;
+  }
+
+  .env-value {
+    font-size: 10px;
+    padding: 1px 6px;
+  }
+}

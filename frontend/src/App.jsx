@@ -1,6 +1,7 @@
 import { useState } from "react";
 import ImageUpload from "./components/ImageUpload";
 import RecommendationResult from "./components/RecommendationResult";
+import EnvironmentBadge from "./components/EnvironmentBadge";
 import "./App.css";
 
 function App() {
@@ -42,6 +43,7 @@ function App() {
 
   return (
     <div className="app">
+      <EnvironmentBadge />
       <header className="app-header">
         <h1>🍊 제주 감성 맛집 추천</h1>
         <p>지금 이 순간의 감성을 담은 사진을 올려주세요</p>

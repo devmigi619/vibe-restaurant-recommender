@@ -87,6 +87,7 @@ def generate_vibe_description(restaurant: dict) -> str:
     response = moonshot_client.chat.completions.create(
         model="kimi-k2.5",
         messages=[{"role": "user", "content": prompt}],
+        temperature=0.6,
         extra_body={"thinking": {"type": "disabled"}},
     )
     return response.choices[0].message.content.strip()
@@ -109,7 +110,7 @@ def run_pipeline():
 
     total = len(all_restaurants)
     print(f"총 {total}개 식당 수집 완료")
-    print(f"Kimi K2.5로 감성 설명 병렬 생성 중... (동시 10개)")
+    print(f"Kimi K2.5로 감성 설명 병렬 생성 중... (동시 3개)")
 
     completed = 0
 
@@ -122,7 +123,7 @@ def run_pipeline():
         except Exception as e:
             return restaurant["name"], str(e)
 
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    with ThreadPoolExecutor(max_workers=3) as executor:
         futures = {executor.submit(process_one, r): r for r in all_restaurants}
         for future in as_completed(futures):
             completed += 1
