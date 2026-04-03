@@ -79,7 +79,7 @@ def generate_vibe_description(restaurant: dict) -> str:
 
 감성 설명:"""
 
-    model = genai.GenerativeModel("gemini-2.5-flash")
+    model = genai.GenerativeModel("gemini-2.5-flash-lite")
     response = model.generate_content(prompt)
     return response.text.strip()
 
