@@ -33,6 +33,8 @@ jobs:
           platforms: linux/amd64,linux/arm64  # 멀티 아키텍처 지원
           push: true
           tags: ghcr.io/${{ github.repository }}-backend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Build and push frontend
         uses: docker/build-push-action@v5
@@ -43,6 +45,8 @@ jobs:
           tags: ghcr.io/${{ github.repository }}-frontend:latest
           build-args: |
             VITE_API_URL=${{ secrets.VITE_API_URL }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   deploy:
     needs: build-and-push
