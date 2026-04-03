@@ -1,5 +1,6 @@
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -108,17 +109,28 @@ def run_pipeline():
 
     total = len(all_restaurants)
     print(f"총 {total}개 식당 수집 완료")
-    print(f"Kimi K2.5로 감성 설명 순차 생성 중... (1초 간격)")
+    print(f"Kimi K2.5로 감성 설명 병렬 생성 중... (동시 10개)")
 
-    for i, restaurant in enumerate(all_restaurants, 1):
+    completed = 0
+
+    def process_one(restaurant):
         try:
             vibe = generate_vibe_description(restaurant)
             restaurant["vibe_description"] = vibe
             add_restaurant(restaurant)
-            print(f"  [{i}/{total}] ✓ {restaurant['name']}")
+            return restaurant["name"], None
         except Exception as e:
-            print(f"  [{i}/{total}] ❌ {restaurant['name']}: {e}")
-        time.sleep(1)
+            return restaurant["name"], str(e)
+
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = {executor.submit(process_one, r): r for r in all_restaurants}
+        for future in as_completed(futures):
+            completed += 1
+            name, error = future.result()
+            if error:
+                print(f"  [{completed}/{total}] ❌ {name}: {error}")
+            else:
+                print(f"  [{completed}/{total}] ✓ {name}")
 
     print(f"완료! 벡터 DB에 {get_restaurant_count()}개 저장됨")
 

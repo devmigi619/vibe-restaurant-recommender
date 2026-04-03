@@ -1,0 +1,14 @@
+services:
+  backend:
+    image: ghcr.io/devmigi619/vibe-restaurant-recommender-backend:latest
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+
+  frontend:
+    image: ghcr.io/devmigi619/vibe-restaurant-recommender-frontend:latest
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
