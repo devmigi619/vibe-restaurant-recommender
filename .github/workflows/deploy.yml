@@ -58,6 +58,12 @@ jobs:
           script: |
             cd ~/vibe-restaurant-recommender
             
+            # backend 폴터 생성 및 .env 파일 생성 (GitHub Secrets에서 가져옴)
+            mkdir -p backend
+            cat > backend/.env << 'ENVEOF'
+            ${{ secrets.ENV_FILE_CONTENT }}
+            ENVEOF
+            
             # GitHub Container Registry 로그인
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             

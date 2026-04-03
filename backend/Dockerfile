@@ -4,7 +4,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+# .env 제외하고 필요한 소스 파일만 복사
+COPY main.py agent.py tools.py vector_store.py data_pipeline.py ./
 
 # 환경 변수 기본값 설정
 ENV ENVIRONMENT=local-docker
