@@ -1,4 +1,4 @@
-import google.generativeai as genai
+from openai import OpenAI
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct
 import os
@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 qdrant_client = QdrantClient(
     url=os.getenv("QDRANT_URL"),
@@ -14,7 +14,7 @@ qdrant_client = QdrantClient(
 )
 
 COLLECTION_NAME = "jeju_restaurants"
-VECTOR_SIZE = 3072  # gemini-embedding-001 기본 출력 차원
+VECTOR_SIZE = 1536  # text-embedding-3-small 출력 차원
 
 
 def _ensure_collection():
@@ -31,11 +31,11 @@ _ensure_collection()
 
 
 def embed_text(text: str) -> list[float]:
-    result = genai.embed_content(
-        model="models/gemini-embedding-001",
-        content=text,
+    response = openai_client.embeddings.create(
+        model="text-embedding-3-small",
+        input=text,
     )
-    return result["embedding"]
+    return response.data[0].embedding
 
 
 def add_restaurant(restaurant: dict):

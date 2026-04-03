@@ -1,16 +1,20 @@
 import os
 import time
 
-import google.generativeai as genai
-import requests
 from dotenv import load_dotenv
+from openai import OpenAI
+import requests
 
 from vector_store import add_restaurant, get_restaurant_count
 
 load_dotenv()
 
 kakao_key = os.getenv("KAKAO_REST_API_KEY")
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+
+moonshot_client = OpenAI(
+    api_key=os.getenv("MOONSHOT_API_KEY"),
+    base_url="https://api.moonshot.ai/v1",
+)
 
 JEJU_KEYWORDS = [
     "제주 흑돼지",
@@ -69,7 +73,7 @@ def fetch_restaurants_by_keyword(keyword: str, max_pages: int = 3) -> list[dict]
 
 
 def generate_vibe_description(restaurant: dict) -> str:
-    """Gemini로 식당의 감성 설명 생성"""
+    """Kimi K2.5로 식당의 감성 설명 생성"""
     prompt = f"""다음 식당의 감성과 분위기를 한국어로 자세히 설명해주세요.
 어떤 날씨, 기분, 상황에 어울리는지, 어떤 사람들이 오면 좋을지 포함해서 2-3문장으로 작성해주세요.
 
@@ -79,9 +83,12 @@ def generate_vibe_description(restaurant: dict) -> str:
 
 감성 설명:"""
 
-    model = genai.GenerativeModel("gemini-2.5-flash-lite")
-    response = model.generate_content(prompt)
-    return response.text.strip()
+    response = moonshot_client.chat.completions.create(
+        model="kimi-k2.5",
+        messages=[{"role": "user", "content": prompt}],
+        extra_body={"thinking": {"type": "disabled"}},
+    )
+    return response.choices[0].message.content.strip()
 
 
 def run_pipeline():
@@ -101,7 +108,7 @@ def run_pipeline():
 
     total = len(all_restaurants)
     print(f"총 {total}개 식당 수집 완료")
-    print(f"Gemini로 감성 설명 순차 생성 중... (7초 간격, 예상 {total * 7 // 60}분 소요)")
+    print(f"Kimi K2.5로 감성 설명 순차 생성 중... (1초 간격)")
 
     for i, restaurant in enumerate(all_restaurants, 1):
         try:
@@ -111,7 +118,7 @@ def run_pipeline():
             print(f"  [{i}/{total}] ✓ {restaurant['name']}")
         except Exception as e:
             print(f"  [{i}/{total}] ❌ {restaurant['name']}: {e}")
-        time.sleep(7)  # 분당 ~8 요청 유지 (10 RPM 제한 안전하게 회피)
+        time.sleep(1)
 
     print(f"완료! 벡터 DB에 {get_restaurant_count()}개 저장됨")
 

@@ -1,17 +1,17 @@
-import base64
-import io
 import os
 
-import google.generativeai as genai
-import PIL.Image
 from dotenv import load_dotenv
 from langchain.tools import tool
+from openai import OpenAI
 
 from vector_store import search_restaurants
 
 load_dotenv()
 
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+moonshot_client = OpenAI(
+    api_key=os.getenv("MOONSHOT_API_KEY"),
+    base_url="https://api.moonshot.ai/v1",
+)
 
 # 이미지 데이터를 에이전트에게 전달하기 위한 전역 컨텍스트
 _current_image_base64: str = ""
@@ -28,17 +28,30 @@ def analyze_image_vibe(dummy: str = "") -> str:
     if not _current_image_base64:
         return "이미지가 없습니다."
 
-    image_bytes = base64.b64decode(_current_image_base64)
-    image = PIL.Image.open(io.BytesIO(image_bytes))
-
-    model = genai.GenerativeModel("gemini-2.5-flash")
-    response = model.generate_content([
-        image,
-        """이 이미지의 감성과 분위기를 분석해주세요.
+    response = moonshot_client.chat.completions.create(
+        model="kimi-k2.5",
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{_current_image_base64}"
+                        },
+                    },
+                    {
+                        "type": "text",
+                        "text": """이 이미지의 감성과 분위기를 분석해주세요.
 어떤 날씨인지, 어떤 기분이 드는지, 어떤 상황인지를 포함해서
-맛집 추천에 활용할 수 있도록 구체적으로 설명해주세요. (한국어, 3-4문장)"""
-    ])
-    return response.text.strip()
+맛집 추천에 활용할 수 있도록 구체적으로 설명해주세요. (한국어, 3-4문장)""",
+                    },
+                ],
+            }
+        ],
+        extra_body={"thinking": {"type": "disabled"}},
+    )
+    return response.choices[0].message.content.strip()
 
 
 @tool

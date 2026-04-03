@@ -3,17 +3,19 @@ import os
 from dotenv import load_dotenv
 from langchain import hub
 from langchain.agents import AgentExecutor, create_react_agent
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
 from langfuse.callback import CallbackHandler as LangfuseCallbackHandler
 
 from tools import analyze_image_vibe, search_matching_restaurants, set_current_image
 
 load_dotenv()
 
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
-    temperature=0,
-    google_api_key=os.getenv("GOOGLE_API_KEY"),
+llm = ChatOpenAI(
+    model="kimi-k2.5",
+    openai_api_key=os.getenv("MOONSHOT_API_KEY"),
+    openai_api_base="https://api.moonshot.ai/v1",
+    temperature=0.6,
+    model_kwargs={"thinking": {"type": "disabled"}},
 )
 
 tools = [analyze_image_vibe, search_matching_restaurants]
