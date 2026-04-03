@@ -1,15 +1,21 @@
+import os
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import base64
 from agent import run_vibe_recommendation
 from vector_store import get_restaurant_count, clear_collection
 from data_pipeline import run_pipeline
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI(title="제주 감성 맛집 추천 API")
 
+cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

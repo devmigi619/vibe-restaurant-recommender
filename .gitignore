@@ -1,4 +1,6 @@
 # 환경변수 (API 키 포함 - 절대 커밋하지 않음)
+.env
+.env.*
 backend/.env
 backend/.env.*
 frontend/.env
