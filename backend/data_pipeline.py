@@ -1,6 +1,5 @@
 import os
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import google.generativeai as genai
 import requests
@@ -100,31 +99,19 @@ def run_pipeline():
                 all_restaurants.append(r)
         time.sleep(0.3)
 
-    print(f"총 {len(all_restaurants)}개 식당 수집 완료")
-    print("Gemini로 감성 설명 병렬 생성 중... (동시 5개)")
-
-    completed = 0
     total = len(all_restaurants)
+    print(f"총 {total}개 식당 수집 완료")
+    print(f"Gemini로 감성 설명 순차 생성 중... (7초 간격, 예상 {total * 7 // 60}분 소요)")
 
-    def process_one(restaurant):
+    for i, restaurant in enumerate(all_restaurants, 1):
         try:
             vibe = generate_vibe_description(restaurant)
             restaurant["vibe_description"] = vibe
             add_restaurant(restaurant)
-            return restaurant["name"], None
+            print(f"  [{i}/{total}] ✓ {restaurant['name']}")
         except Exception as e:
-            return restaurant["name"], str(e)
-
-    # Gemini free tier는 분당 요청 제한이 있으므로 동시 작업 수를 5로 제한
-    with ThreadPoolExecutor(max_workers=5) as executor:
-        futures = {executor.submit(process_one, r): r for r in all_restaurants}
-        for future in as_completed(futures):
-            completed += 1
-            name, error = future.result()
-            if error:
-                print(f"  [{completed}/{total}] ❌ {name}: {error}")
-            else:
-                print(f"  [{completed}/{total}] ✓ {name}")
+            print(f"  [{i}/{total}] ❌ {restaurant['name']}: {e}")
+        time.sleep(7)  # 분당 ~8 요청 유지 (10 RPM 제한 안전하게 회피)
 
     print(f"완료! 벡터 DB에 {get_restaurant_count()}개 저장됨")
 
