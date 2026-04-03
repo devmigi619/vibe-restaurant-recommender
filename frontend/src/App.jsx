@@ -9,6 +9,8 @@ function App() {
   const [error, setError] = useState(null);
   const [preview, setPreview] = useState(null);
 
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000"
+  
   const handleImageUpload = async (file) => {
     setLoading(true);
     setError(null);
@@ -19,7 +21,7 @@ function App() {
     formData.append("file", file);
 
     try {
-      const res = await fetch("http://localhost:8000/recommend", {
+      const res = await fetch(`${API_URL}/recommend`, {
         method: "POST",
         body: formData,
       });

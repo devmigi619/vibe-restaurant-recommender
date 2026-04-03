@@ -1,15 +1,17 @@
-import requests
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from openai import OpenAI
+
+import google.generativeai as genai
+import requests
 from dotenv import load_dotenv
+
 from vector_store import add_restaurant, get_restaurant_count
 
 load_dotenv()
 
 kakao_key = os.getenv("KAKAO_REST_API_KEY")
-openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 JEJU_KEYWORDS = [
     "제주 흑돼지",
@@ -41,7 +43,7 @@ def fetch_restaurants_by_keyword(keyword: str, max_pages: int = 3) -> list[dict]
         response = requests.get(
             "https://dapi.kakao.com/v2/local/search/keyword.json",
             headers=headers,
-            params=params
+            params=params,
         )
         data = response.json()
         places = data.get("documents", [])
@@ -68,7 +70,7 @@ def fetch_restaurants_by_keyword(keyword: str, max_pages: int = 3) -> list[dict]
 
 
 def generate_vibe_description(restaurant: dict) -> str:
-    """GPT로 식당의 감성 설명 생성"""
+    """Gemini로 식당의 감성 설명 생성"""
     prompt = f"""다음 식당의 감성과 분위기를 한국어로 자세히 설명해주세요.
 어떤 날씨, 기분, 상황에 어울리는지, 어떤 사람들이 오면 좋을지 포함해서 2-3문장으로 작성해주세요.
 
@@ -78,13 +80,9 @@ def generate_vibe_description(restaurant: dict) -> str:
 
 감성 설명:"""
 
-    response = openai_client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=200,
-        temperature=0.7
-    )
-    return response.choices[0].message.content.strip()
+    model = genai.GenerativeModel("gemini-2.5-flash")
+    response = model.generate_content(prompt)
+    return response.text.strip()
 
 
 def run_pipeline():
@@ -103,7 +101,7 @@ def run_pipeline():
         time.sleep(0.3)
 
     print(f"총 {len(all_restaurants)}개 식당 수집 완료")
-    print("GPT로 감성 설명 병렬 생성 중... (동시 20개)")
+    print("Gemini로 감성 설명 병렬 생성 중... (동시 5개)")
 
     completed = 0
     total = len(all_restaurants)
@@ -117,7 +115,8 @@ def run_pipeline():
         except Exception as e:
             return restaurant["name"], str(e)
 
-    with ThreadPoolExecutor(max_workers=20) as executor:
+    # Gemini free tier는 분당 요청 제한이 있으므로 동시 작업 수를 5로 제한
+    with ThreadPoolExecutor(max_workers=5) as executor:
         futures = {executor.submit(process_one, r): r for r in all_restaurants}
         for future in as_completed(futures):
             completed += 1

@@ -1,22 +1,41 @@
-import chromadb
-from chromadb.config import Settings
-from openai import OpenAI
+import google.generativeai as genai
+from qdrant_client import QdrantClient
+from qdrant_client.models import Distance, VectorParams, PointStruct
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-chroma_client = chromadb.PersistentClient(path="./chroma_db")
-collection = chroma_client.get_or_create_collection(name="jeju_restaurants")
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+
+qdrant_client = QdrantClient(
+    url=os.getenv("QDRANT_URL"),
+    api_key=os.getenv("QDRANT_API_KEY"),
+)
+
+COLLECTION_NAME = "jeju_restaurants"
+VECTOR_SIZE = 3072  # gemini-embedding-001 기본 출력 차원
+
+
+def _ensure_collection():
+    try:
+        qdrant_client.get_collection(COLLECTION_NAME)
+    except Exception:
+        qdrant_client.create_collection(
+            collection_name=COLLECTION_NAME,
+            vectors_config=VectorParams(size=VECTOR_SIZE, distance=Distance.COSINE),
+        )
+
+
+_ensure_collection()
 
 
 def embed_text(text: str) -> list[float]:
-    response = client.embeddings.create(
-        model="text-embedding-3-small",
-        input=text
+    result = genai.embed_content(
+        model="models/gemini-embedding-001",
+        content=text,
     )
-    return response.data[0].embedding
+    return result["embedding"]
 
 
 def add_restaurant(restaurant: dict):
@@ -24,45 +43,51 @@ def add_restaurant(restaurant: dict):
     vibe_text = restaurant.get("vibe_description", "")
     embedding = embed_text(vibe_text)
 
-    collection.upsert(
-        ids=[restaurant["id"]],
-        embeddings=[embedding],
-        documents=[vibe_text],
-        metadatas=[{
-            "name": restaurant["name"],
-            "address": restaurant.get("address", ""),
-            "category": restaurant.get("category", ""),
-            "phone": restaurant.get("phone", ""),
-            "url": restaurant.get("url", ""),
-            "vibe_tags": restaurant.get("vibe_tags", ""),
-        }]
+    qdrant_client.upsert(
+        collection_name=COLLECTION_NAME,
+        points=[
+            PointStruct(
+                id=int(restaurant["id"]),
+                vector=embedding,
+                payload={
+                    "name": restaurant["name"],
+                    "address": restaurant.get("address", ""),
+                    "category": restaurant.get("category", ""),
+                    "phone": restaurant.get("phone", ""),
+                    "url": restaurant.get("url", ""),
+                    "vibe_description": vibe_text,
+                },
+            )
+        ],
     )
 
 
 def clear_collection():
     """컬렉션 전체 삭제 후 재생성"""
-    global collection
-    chroma_client.delete_collection(name="jeju_restaurants")
-    collection = chroma_client.get_or_create_collection(name="jeju_restaurants")
+    qdrant_client.delete_collection(COLLECTION_NAME)
+    _ensure_collection()
 
 
 def search_restaurants(vibe_description: str, n_results: int = 5) -> list[dict]:
     """감성 설명으로 유사한 식당 검색"""
     embedding = embed_text(vibe_description)
-    results = collection.query(
-        query_embeddings=[embedding],
-        n_results=n_results
+    results = qdrant_client.search(
+        collection_name=COLLECTION_NAME,
+        query_vector=embedding,
+        limit=n_results,
     )
 
-    restaurants = []
-    for i, metadata in enumerate(results["metadatas"][0]):
-        restaurants.append({
-            **metadata,
-            "vibe_description": results["documents"][0][i],
-            "similarity_score": 1 - results["distances"][0][i]
-        })
-    return restaurants
+    return [
+        {
+            **hit.payload,
+            "similarity_score": hit.score,
+        }
+        for hit in results
+    ]
 
 
 def get_restaurant_count() -> int:
-    return collection.count()
+    try:
+        return qdrant_client.count(collection_name=COLLECTION_NAME).count
+    except Exception:
+        return 0

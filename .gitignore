@@ -1,6 +1,8 @@
 # 환경변수 (API 키 포함 - 절대 커밋하지 않음)
 backend/.env
 backend/.env.*
+frontend/.env
+frontend/.env.*
 
 # Python 가상환경
 backend/venv/
@@ -8,12 +10,17 @@ backend/__pycache__/
 backend/*.pyc
 backend/*.pyo
 
-# ChromaDB 데이터 (로컬 생성 파일)
+# ChromaDB 로컬 데이터
+chroma_db/
 backend/chroma_db/
 
 # Node
 frontend/node_modules/
 frontend/dist/
+
+# IDE
+.idea/
+.vscode/
 
 # macOS
 .DS_Store
